@@ -108,7 +108,7 @@ def squeeze_score(
         institutional_activity * weights['institutional_activity'] +
         macro_triggers * weights['macro_triggers']
     )
-    return round(raw_score * 100, 3)
+    return round(raw_score * 100, 1)
 
 # --- Generate Daily Picks (Mock) ---
 def generate_daily_picks():
@@ -132,7 +132,7 @@ def generate_daily_picks():
         )
     
     sorted_stocks = sorted(mock_data, key=lambda x: x["squeeze_score"], reverse=True)
-    return sorted_stocks[:2]
+    return sorted_stocks[:3]
 
 # --- Load or Generate Daily Picks ---
 def load_daily_picks():
@@ -191,7 +191,7 @@ def calculate_trader_badge(portfolio):
         return "🚀 Moon Walker", f"{win_rate:.0f}% Win Rate"
     elif total_gain_loss >= 50:
         return "📈 Bull Rider", f"{win_rate:.0f}% Win Rate"
-    elif total_gain_loss >= 0:
+    elif total_gain_loss >= 1:
         return "🟢 In the Green", f"{win_rate:.0f}% Win Rate"
     elif total_gain_loss >= -200:
         return "⚖️ Rug Pull", f"{win_rate:.0f}% Win Rate"
