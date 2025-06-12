@@ -154,13 +154,14 @@ st.markdown("### 📊 Your Portfolio History")
 if portfolio["history"]:
     for entry in reversed(portfolio["history"]):
         status = "SOLD" if entry.get("sold") else "OPEN"
-        result = f"{entry['date']} — {entry['ticker']} ({status})\\n"
-        result += f"Score: {entry['score']} | Allocation: ${entry['allocation']}\\n"
+        result = f"{entry['date']} — {entry['ticker']} ({status})
+"
+        result += f"Score: {entry['score']} | Allocation: ${entry['allocation']}\n"
 
         if entry.get("sold"):
-            result += f"💰 Sold at: ${entry['sell_price']} | Gain/Loss: ${entry['gain']}\\n"
+            result += f"💰 Sold at: ${entry['sell_price']} | Gain/Loss: ${entry['gain']}\n"
 
-        result += f"📈 High: ${entry.get('high', 'N/A')} | 📉 Low: ${entry.get('low', 'N/A')}\\n"
+        result += f"📈 High: ${entry.get('high', 'N/A')} | 📉 Low: ${entry.get('low', 'N/A')}\n"
 
         if entry.get("high") != 'N/A' and entry.get("low") != 'N/A':
             try:
@@ -183,3 +184,4 @@ with col1:
     st.write("Enjoying the game? Help keep the squeeze alive.")
 with col2:
     st.button("☕ Buy us a coffee")
+
