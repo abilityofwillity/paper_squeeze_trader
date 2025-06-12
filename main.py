@@ -108,7 +108,7 @@ def squeeze_score(
         institutional_activity * weights['institutional_activity'] +
         macro_triggers * weights['macro_triggers']
     )
-    return round(raw_score * 100, 2)
+    return round(raw_score * 100, 3)
 
 # --- Generate Daily Picks (Mock) ---
 def generate_daily_picks():
@@ -116,11 +116,11 @@ def generate_daily_picks():
     mock_data = [
         {"ticker": "GME", "short_interest": 0.92, "borrow_rate": 0.87, "volume_ratio": 0.76, "social_score": 0.89,
          "gamma_exposure": 0.82, "options_volume": 0.8, "insider_activity": 0.2, "institutional_activity": 0.4, "macro_triggers": 0.6},
-        {"ticker": "AMC", "short_interest": 0.88, "borrow_rate": 0.83, "volume_ratio": 0.68, "social_score": 0.9,
+        {"ticker": "SOXS", "short_interest": 0.88, "borrow_rate": 0.83, "volume_ratio": 0.68, "social_score": 0.9,
          "gamma_exposure": 0.75, "options_volume": 0.77, "insider_activity": 0.1, "institutional_activity": 0.5, "macro_triggers": 0.5},
-        {"ticker": "BBBY", "short_interest": 0.91, "borrow_rate": 0.7, "volume_ratio": 0.6, "social_score": 0.78,
+        {"ticker": "KOSS", "short_interest": 0.91, "borrow_rate": 0.7, "volume_ratio": 0.6, "social_score": 0.78,
          "gamma_exposure": 0.8, "options_volume": 0.73, "insider_activity": 0.25, "institutional_activity": 0.6, "macro_triggers": 0.45},
-        {"ticker": "KOSS", "short_interest": 0.85, "borrow_rate": 0.67, "volume_ratio": 0.72, "social_score": 0.84,
+        {"ticker": "PLTR", "short_interest": 0.85, "borrow_rate": 0.67, "volume_ratio": 0.72, "social_score": 0.84,
          "gamma_exposure": 0.7, "options_volume": 0.75, "insider_activity": 0.3, "institutional_activity": 0.5, "macro_triggers": 0.4}
     ]
     
