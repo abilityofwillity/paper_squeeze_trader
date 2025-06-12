@@ -1,112 +1,97 @@
-# Paper Squeeze Trader MVP - Web App
-
-# Features:
-# - $1,000 fake bankroll
-# - 2 curated daily stock picks  
-# - Custom squeeze score
-# - User picks 1 per day
-# - Performance updates daily
-# - Monetization-ready zones
-# - Sell function implemented
-# - Real-time price updates
-
-import streamlit as st
-import json
-import os
-import random
-from datetime import date, datetime
-import time
-
-# Try to import yfinance, fall back to mock mode if not available
-try:
-    import yfinance as yf
-    YFINANCE_AVAILABLE = True
-except ImportError:
-    YFINANCE_AVAILABLE = False
-
-# --- Squeeze Score Calculator Function ---
-def squeeze_score(
-    short_interest, borrow_rate, volume_ratio, social_score,
-    gamma_exposure, options_volume, insider_activity,
-    institutional_activity, macro_triggers
-):
-    weights = {
-        'short_interest': 0.25,
-        'borrow_rate': 0.1,
-        'volume_ratio': 0.1,
-        'social_score': 0.15,
-        'gamma_exposure': 0.1,
-        'options_volume': 0.1,
-        'insider_activity': 0.05,
-        'institutional_activity': 0.05,
-        'macro_triggers': 0.1
-    }
-    raw_score = (
-        short_interest * weights['short_interest'] +
-        borrow_rate * weights['borrow_rate'] +
-        volume_ratio * weights['volume_ratio'] +
-        social_score * weights['social_score'] +
-        gamma_exposure * weights['gamma_exposure'] +
-        options_volume * weights['options_volume'] +
-        insider_activity * weights['insider_activity'] +
-        institutional_activity * weights['institutional_activity'] +
-        macro_triggers * weights['macro_triggers']
-    )
-    return round(raw_score * 100, 2)
-
-# --- Generate Daily Picks (Mock) ---
-def generate_daily_picks():
-    mock_data = [
-        {"ticker": "GME", "short_interest": 0.92, "borrow_rate": 0.87, "volume_ratio": 0.76, "social_score": 0.89,
-         "gamma_exposure": 0.82, "options_volume": 0.8, "insider_activity": 0.2, "institutional_activity": 0.4, "macro_triggers": 0.6},
-        {"ticker": "AMC", "short_interest": 0.88, "borrow_rate": 0.83, "volume_ratio": 0.68, "social_score": 0.9,
-         "gamma_exposure": 0.75, "options_volume": 0.77, "insider_activity": 0.1, "institutional_activity": 0.5, "macro_triggers": 0.5},
-        {"ticker": "BBBY", "short_interest": 0.91, "borrow_rate": 0.7, "volume_ratio": 0.6, "social_score": 0.78,
-         "gamma_exposure": 0.8, "options_volume": 0.73, "insider_activity": 0.25, "institutional_activity": 0.6, "macro_triggers": 0.45},
-        {"ticker": "KOSS", "short_interest": 0.85, "borrow_rate": 0.67, "volume_ratio": 0.72, "social_score": 0.84,
-         "gamma_exposure": 0.7, "options_volume": 0.75, "insider_activity": 0.3, "institutional_activity": 0.5, "macro_triggers": 0.4}
-    ]
-    for stock in mock_data:
-        stock["squeeze_score"] = squeeze_score(
-            stock["short_interest"], stock["borrow_rate"], stock["volume_ratio"], stock["social_score"],
-            stock["gamma_exposure"], stock["options_volume"], stock["insider_activity"],
-            stock["institutional_activity"], stock["macro_triggers"]
-        )
-    sorted_stocks = sorted(mock_data, key=lambda x: x["squeeze_score"], reverse=True)
-    return sorted_stocks[:2]
-
-# --- Load or Generate Daily Picks ---
-if "daily_picks" not in st.session_state:
-    st.session_state.daily_picks = generate_daily_picks()
-
-st.set_page_config(page_title="Paper Squeeze Trader", layout="wide")
-st.title("📈 Paper Squeeze Trader")
-st.caption(f"Daily Picks for {date.today().strftime('%B %d, %Y')}")
-
-# --- Streamlit Refresh Interval ---
-st_autorefresh = st.experimental_rerun if "autorefresh" not in st.session_state else None
-st.session_state.autorefresh = True
-
-# --- Display Stock Prices ---
-st.markdown("### 🔄 Real-Time Price Updates")
-daily_picks = st.session_state.daily_picks
-realtime_data = {}
-
-for pick in daily_picks:
-    price = 0.0
-    if YFINANCE_AVAILABLE:
-        try:
-            data = yf.Ticker(pick['ticker']).history(period="1d")
-            if not data.empty:
-                price = round(data['Close'][-1], 2)
-        except:
-            pass
+# After the "Submit Pick" button success block, add st.rerun():
+if st.button("Submit Pick"):
+    if portfolio["last_pick_date"] == today:
+        st.warning("You've already picked a stock today. Come back tomorrow!")
+    elif investment_amount > portfolio["balance"]:
+        st.error("Insufficient funds!")
     else:
-        price = round(random.uniform(20.0, 100.0), 2)
+        pick_ticker = selected.split(" —")[0]
+        pick_score = next(p["squeeze_score"] for p in daily_picks if p["ticker"] == pick_ticker)
+        
+        # Get stock data
+        stock_data = get_stock_data(pick_ticker)
+        current_price = get_stock_price(pick_ticker)
+        
+        # Calculate shares purchased
+        shares = investment_amount / current_price
+        
+        pick_record = {
+            "date": today,
+            "ticker": pick_ticker,
+            "score": pick_score,
+            "investment": investment_amount,
+            "shares": round(shares, 4),
+            "entry_price": current_price,
+            "high": stock_data['high'],
+            "low": stock_data['low'],
+            "sold": False
+        }
 
-    realtime_data[pick['ticker']] = price
-    st.write(f"{pick['ticker']} — Current Price: ${price}")
+        portfolio["balance"] -= investment_amount
+        portfolio["history"].append(pick_record)
+        portfolio["last_pick_date"] = today
+        
+        if save_portfolio(portfolio):
+            st.success(f"✅ You picked {pick_ticker}! Bought {shares:.4f} shares at ${current_price:.2f} each for ${investment_amount:.2f}")
+            st.rerun()  # ADD THIS LINE - Forces page refresh with updated data
+        else:
+            st.error("Failed to save your pick. Please try again.")
 
-st.divider()
+# And after the "Sell Selected Position" button success block:
+if st.button("Sell Selected Position"):
+    position = portfolio['history'][sell_index]
+    current_price = get_stock_price(position['ticker'])
+    
+    # Calculate sale proceeds
+    sale_proceeds = position['shares'] * current_price
+    gain_loss = sale_proceeds - position['investment']
+    
+    # Update portfolio
+    portfolio["balance"] += sale_proceeds
+    portfolio["history"][sell_index]["sold"] = True
+    portfolio["history"][sell_index]["exit_price"] = current_price
+    portfolio["history"][sell_index]["sale_proceeds"] = round(sale_proceeds, 2)
+    portfolio["history"][sell_index]["gain_loss"] = round(gain_loss, 2)
+    portfolio["history"][sell_index]["sell_date"] = date.today().isoformat()
+    
+    if save_portfolio(portfolio):
+        if gain_loss >= 0:
+            st.success(f"🎉 Sold {position['ticker']} for ${sale_proceeds:.2f}! Profit: ${gain_loss:.2f}")
+        else:
+            st.info(f"📉 Sold {position['ticker']} for ${sale_proceeds:.2f}. Loss: ${abs(gain_loss):.2f}")
+        st.rerun()  # ADD THIS LINE - Forces page refresh with updated data
+    else:
+        st.error("Failed to complete sale. Please try again.")
 
+# Alternative approach: Use st.empty() containers for dynamic updates
+# If you want real-time updates without full page refresh, you could use:
 
+# At the top, create placeholders:
+# balance_placeholder = st.empty()
+# portfolio_stats_placeholder = st.empty()
+
+# Then update them after transactions:
+# balance_placeholder.markdown(f"### 💰 Account Balance: ${portfolio['balance']:.2f}")
+# with portfolio_stats_placeholder.container():
+#     # Update portfolio statistics here
+
+# SUMMARY: What gets updated when st.rerun() is added:
+# 
+# ✅ Account Balance: st.markdown(f"### 💰 Account Balance: ${portfolio['balance']:.2f}")
+# ✅ Portfolio Metrics:
+#    - st.metric("Total Invested", f"${total_invested:.2f}")
+#    - st.metric("Portfolio Value", f"${total_current_value:.2f}")  
+#    - st.metric("Total Gain/Loss", f"${total_gain_loss:.2f}", delta=f"{(total_gain_loss/1000)*100:.1f}%")
+# ✅ Position Details in expandable sections:
+#    - Current prices for open positions
+#    - Current values and unrealized gains/losses
+#    - Updated portfolio history with new entries
+# ✅ Sell dropdown options (will include new positions)
+#
+# The st.rerun() forces Streamlit to re-execute the entire script, which:
+# 1. Reloads portfolio data from the saved JSON file
+# 2. Recalculates all metrics with fresh data
+# 3. Fetches current stock prices again
+# 4. Updates all display components with new values
+#
+# This is the standard solution for indicator update issues in Streamlit apps.
