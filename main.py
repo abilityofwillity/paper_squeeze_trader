@@ -161,6 +161,45 @@ def load_daily_picks():
     
     return daily_picks
 
+# --- Badge/Reward System ---
+def calculate_trader_badge(portfolio):
+    """Calculate trader badge based on performance and milestones"""
+    history = portfolio.get("history", [])
+    balance = portfolio.get("balance", 1000.0)
+    
+    # Calculate stats
+    total_trades = len(history)
+    completed_trades = len([pos for pos in history if pos.get("sold")])
+    profitable_trades = len([pos for pos in history if pos.get("sold") and pos.get("gain_loss", 0) > 0])
+    current_value = balance
+    
+    # Add current value of open positions
+    for pos in history:
+        if not pos.get('sold'):
+            current_price = get_stock_price(pos['ticker'])
+            current_value += pos['shares'] * current_price
+    
+    total_gain_loss = current_value - 1000.0
+    win_rate = (profitable_trades / completed_trades * 100) if completed_trades > 0 else 0
+    
+    # Badge logic
+    if total_trades == 0:
+        return "🆕 Noob", "Make your first trade!"
+    elif total_gain_loss >= 1000:
+        return "💎 Pepe Legend", f"{win_rate:.0f}% Win Rate"
+    elif total_gain_loss >= 500:
+        return "🚀 Moon Walker", f"{win_rate:.0f}% Win Rate"
+    elif total_gain_loss >= 50:
+        return "📈 Bull Rider", f"{win_rate:.0f}% Win Rate"
+    elif total_gain_loss >= 0:
+        return "🟢 In the Green", f"{win_rate:.0f}% Win Rate"
+    elif total_gain_loss >= -200:
+        return "⚖️ Rug Pull", f"{win_rate:.0f}% Win Rate"
+    elif total_gain_loss >= -20:
+        return "📉 Learning", f"{win_rate:.0f}% Win Rate"
+    else:
+        return "💪 Comeback Kid", f"{win_rate:.0f}% Win Rate"
+
 # --- Portfolio Management ---
 def load_portfolio():
     """Load user portfolio from file"""
@@ -194,7 +233,7 @@ st.title("📈 Paper Squeeze Trader")
 st.caption(f"Daily Picks for {date.today().strftime('%B %d, %Y')}")
 
 # Show yfinance warning if needed
-if not YFINANCE_AVAILABLE:
+if not YLINANCE_AVAILABLE:
     st.warning("⚠️ yfinance not installed. Using mock data. Install with: pip install yfinance")
 
 # Load data
@@ -321,7 +360,8 @@ if portfolio["history"]:
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Invested", f"${total_invested:.2f}")
+        badge, badge_detail = calculate_trader_badge(portfolio)
+        st.metric("Trader Badge", badge, delta=badge_detail)
     with col2:
         st.metric("Portfolio Value", f"${total_current_value:.2f}")
     with col3:
@@ -379,6 +419,3 @@ with col2:
 # --- Footer ---
 st.markdown("---")
 st.caption("⚠️ This is a paper trading game for educational purposes only. Not financial advice.")
-# 4. Updates all display components with new values
-#
-# This is the standard solution for indicator update issues in Streamlit apps.
