@@ -194,7 +194,7 @@ st.title("📈 Paper Squeeze Trader")
 st.caption(f"Daily Picks for {date.today().strftime('%B %d, %Y')}")
 
 # Show yfinance warning if needed
-if not YLINANCE_AVAILABLE:
+if not YFINANCE_AVAILABLE:
     st.warning("⚠️ yfinance not installed. Using mock data. Install with: pip install yfinance")
 
 # Load data
