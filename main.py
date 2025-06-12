@@ -1,17 +1,6 @@
 
-# Paper Squeeze Trader MVP - Web App
-
-# Features:
-# - $1,000 fake bankroll
-# - 2 curated daily stock picks
-# - Custom squeeze score
-# - User picks 1 per day
-# - Performance updates daily
-# - Monetization-ready zones
-
 import streamlit as st
 import json
-import os
 import random
 from datetime import date
 import yfinance as yf
@@ -67,34 +56,26 @@ def generate_daily_picks():
     sorted_stocks = sorted(mock_data, key=lambda x: x["squeeze_score"], reverse=True)
     return sorted_stocks[:2]
 
-# --- Load or Generate Daily Picks ---
-picks_file = "/mnt/data/daily_picks.json"
-if not os.path.exists(picks_file):
-    daily_picks = generate_daily_picks()
-    with open(picks_file, "w") as f:
-        json.dump(daily_picks, f, indent=2)
-else:
-    with open(picks_file, "r") as f:
-        daily_picks = json.load(f)
+# --- Setup session state ---
+if "daily_picks" not in st.session_state:
+    st.session_state.daily_picks = generate_daily_picks()
 
-# --- Streamlit App UI ---
+if "portfolio" not in st.session_state:
+    st.session_state.portfolio = {"balance": 1000.00, "history": [], "last_pick_date": None}
+
+# --- Streamlit App ---
 st.set_page_config(page_title="Paper Squeeze Trader", layout="wide")
 st.title("📈 Paper Squeeze Trader")
 st.caption(f"Daily Picks for {date.today().strftime('%B %d, %Y')}")
 
 st.markdown("Pick your favorite stock from today's top squeeze candidates:")
+daily_picks = st.session_state.daily_picks
 selected = st.radio(
     "Which stock do you want to add to your fake portfolio?",
     [f"{p['ticker']} — Squeeze Score: {p['squeeze_score']}" for p in daily_picks]
 )
 
-# --- Load Portfolio ---
-PORTFOLIO_FILE = "/mnt/data/user_portfolio.json"
-if os.path.exists(PORTFOLIO_FILE):
-    with open(PORTFOLIO_FILE, "r") as pf:
-        portfolio = json.load(pf)
-else:
-    portfolio = {"balance": 1000.00, "history": [], "last_pick_date": None}
+portfolio = st.session_state.portfolio
 
 # --- Display Account Balance ---
 st.markdown(f"### 💰 Account Balance: ${portfolio['balance']:.2f}")
@@ -126,36 +107,14 @@ if st.button("Submit Pick"):
         portfolio["balance"] -= investment_amount
         portfolio["history"].append(pick_record)
         portfolio["last_pick_date"] = today
-        with open(PORTFOLIO_FILE, "w") as pf:
-            json.dump(portfolio, pf, indent=2)
         st.success(f"✅ You picked {pick_ticker}. ${investment_amount:.2f} has been added to your paper position!")
-
-# --- Sell Function ---
-st.markdown("### 💼 Sell a Position")
-open_positions = [i for i, e in enumerate(portfolio["history"]) if not e.get("sold")]
-if open_positions:
-    sell_index = st.selectbox("Select a position to sell:", open_positions, format_func=lambda i: f"{portfolio['history'][i]['ticker']} from {portfolio['history'][i]['date']} (${portfolio['history'][i]['allocation']})")
-    if st.button("Sell Selected Position"):
-        current_price = round(yf.Ticker(portfolio['history'][sell_index]['ticker']).history(period="1d")['Close'][-1], 2)
-        allocation = portfolio['history'][sell_index]['allocation']
-        gain = round(current_price - allocation, 2)
-        portfolio["balance"] += current_price
-        portfolio["history"][sell_index]["sold"] = True
-        portfolio["history"][sell_index]["sell_price"] = current_price
-        portfolio["history"][sell_index]["gain"] = gain
-        with open(PORTFOLIO_FILE, "w") as pf:
-            json.dump(portfolio, pf, indent=2)
-        st.success(f"Sold {portfolio['history'][sell_index]['ticker']} for ${current_price:.2f}. Gain/Loss: ${gain:.2f}")
-else:
-    st.info("No open positions to sell.")
 
 # --- Portfolio History ---
 st.markdown("### 📊 Your Portfolio History")
 if portfolio["history"]:
     for entry in reversed(portfolio["history"]):
         status = "SOLD" if entry.get("sold") else "OPEN"
-        result = f"{entry['date']} — {entry['ticker']} ({status})
-"
+        result = f"{entry['date']} — {entry['ticker']} ({status})\n"
         result += f"Score: {entry['score']} | Allocation: ${entry['allocation']}\n"
 
         if entry.get("sold"):
