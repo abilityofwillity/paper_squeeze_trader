@@ -1,5 +1,5 @@
 # save as update_daily_picks.py
-from paper_squeeze_trader_claude2 import generate_daily_picks, PICKS_FILE
+from main import generate_daily_picks, PICKS_FILE
 import json
 from datetime import date
 
